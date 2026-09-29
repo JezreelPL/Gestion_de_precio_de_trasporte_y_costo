@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OptiRuta - Transporte (Método de Vogel)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
+<script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-slate-50 min-h-screen p-6">
+
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-3xl font-bold text-slate-800 mb-1">OptiRuta</h1>
+    <p class="text-slate-500 mb-6">Distribución óptima con el Método de Vogel</p>
+
+    <!-- SELECTOR DE MODO -->
+    <div class="bg-white rounded-xl shadow p-5 mb-6">
+      <h2 class="font-semibold text-slate-700 mb-3">1. ¿Cómo quieres ingresar los datos?</h2>
+      <div class="flex gap-3">
+        <button id="btnModoManual" onclick="cambiarModo('manual')"
+          class="px-4 py-2 rounded font-medium bg-slate-700 text-white">
+          ✍️ Ingresar costos manualmente
+        </button>
+        <button id="btnModoMapa" onclick="cambiarModo('mapa')"
+          class="px-4 py-2 rounded font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">
+          🗺️ Ubicar en el mapa
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= MODO MANUAL ================= -->
+    <div id="seccionManual">
+      <div class="bg-white rounded-xl shadow p-5 mb-6">
+        <h2 class="font-semibold text-slate-700 mb-3">2. Configura tu problema</h2>
+        <div class="flex gap-4 mb-4">
+          <label class="text-sm text-slate-600">
+            Bodegas (orígenes):
+            <input id="numOrigins" type="number" min="1" value="3"
+              class="border rounded px-2 py-1 w-16 ml-2">
+          </label>
+          <label class="text-sm text-slate-600">
+            Destinos:
+            <input id="numDestinations" type="number" min="1" value="3"
+              class="border rounded px-2 py-1 w-16 ml-2">
+          </label>
+          <button onclick="generarTablas()"
+            class="bg-slate-700 text-white px-4 py-1 rounded hover:bg-slate-800">
+            Generar tablas
+          </button>
+        </div>
+      </div>
+
+      <div id="inputArea" class="bg-white rounded-xl shadow p-5 mb-6 hidden">
+        <h2 class="font-semibold text-slate-700 mb-3">3. Ingresa oferta, demanda y costos</h2>
+        <div id="tablaContainer" class="overflow-x-auto"></div>
+        <button onclick="resolverManual()"
+          class="mt-4 bg-emerald-600 text-white px-5 py-2 rounded hover:bg-emerald-700 font-semibold">
+          Resolver
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= MODO MAPA ================= -->
+    <div id="seccionMapa" class="hidden">
+      <div class="bg-white rounded-xl shadow p-5 mb-6">
+        <h2 class="font-semibold text-slate-700 mb-3">2. Ubica tus bodegas y destinos</h2>
+        <p class="text-sm text-slate-500 mb-3">
+          Elige qué vas a marcar y luego haz clic en el mapa, o busca un lugar. Se te pedirá el nombre y la cantidad.
+        </p>
+        <div class="flex flex-wrap items-center gap-3 mb-3">
+          <label class="text-sm">
+            <input type="radio" name="tipoMarcador" value="bodega" checked> 📦 Bodega (origen)
+          </label>
+          <label class="text-sm">
+            <input type="radio" name="tipoMarcador" value="destino"> 🏬 Destino
+          </label>
+          <label class="text-sm text-slate-600 ml-4">
+            Tarifa por km (Q):
+            <input id="tarifaKm" type="number" step="0.1" value="2"
+              class="border rounded px-2 py-1 w-20 ml-2">
+          </label>
+          <button onclick="reiniciarMapa()"
+            class="ml-auto text-sm text-red-600 hover:underline">
+            🗑️ Reiniciar marcadores
+          </button>
+        </div>
+        <div id="map"></div>
+      </div>
+
+      <!-- MODAL: formulario propio para agregar bodega/destino (usado por js/mapa.js) -->
+      <div id="modalOverlay" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-[1000] p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <h3 id="modalTitulo" class="text-lg font-bold text-slate-800 mb-4">Agregar punto</h3>
+
+          <label class="block text-sm text-slate-600 mb-1">Nombre</label>
+          <input id="modalNombre" type="text"
+            class="w-full border rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            placeholder="Ej. Bodega Central">
+
+          <label id="modalLabelCantidad" class="block text-sm text-slate-600 mb-1">Oferta (unidades)</label>
+          <input id="modalCantidad" type="number" min="1"
+            class="w-full border rounded px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            placeholder="Ej. 100">
+          <p id="modalError" class="text-sm text-red-600 mb-2 hidden"></p>
+
+          <div class="flex justify-end gap-2 mt-4">
+            <button onclick="cancelarModal()"
+              class="px-4 py-2 rounded text-slate-600 hover:bg-slate-100">
+              Cancelar
+            </button>
+            <button onclick="confirmarModal()"
+              class="px-4 py-2 rounded bg-emerald-600 text-white font-semibold hover:bg-emerald-700">
+              Agregar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow p-5 mb-6">
+        <h2 class="font-semibold text-slate-700 mb-3">3. Marcadores agregados</h2>
+        <div id="listaMarcadores" class="text-sm text-slate-600 mb-4">
+          Aún no has agregado ninguna bodega ni destino.
+        </div>
+        <button onclick="resolverMapa()"
+          class="bg-emerald-600 text-white px-5 py-2 rounded hover:bg-emerald-700 font-semibold">
+          Calcular distancias y resolver
+        </button>
+      </div>
+    </div>
+
+    <!-- RESULTADOS (compartido por ambos modos) -->
+    <div id="resultArea" class="bg-white rounded-xl shadow p-5 hidden">
+      <h2 class="font-semibold text-slate-700 mb-3">Resultado</h2>
+      <div id="costMatrixContent" class="mb-4"></div>
+      <div id="resultContent"></div>
+    </div>
+  </div>
+
+<script type="module">
+  // Este script YA NO contiene la lógica del algoritmo ni la del mapa —
+  // solo IMPORTA lo que necesita de cada módulo y conecta los botones (onclick).
+  import { solveVogel } from './js/vogel.js';
+  import {
+    inicializarMapa,
+    refrescarMapa,
+    reiniciarMapa,
+    resolverMapa,
+    cancelarModal,
+    confirmarModal,
+    mostrarResultadoMapa,
+  } from './js/mapa.js';
+
+  // Exponemos a "window" solo lo que el HTML llama por onclick="..."
+  window.reiniciarMapa = reiniciarMapa;
+  window.resolverMapa = resolverMapa;
+  window.cancelarModal = cancelarModal;
+  window.confirmarModal = confirmarModal;
+
+  // ---------- SELECTOR DE MODO ----------
+  window.cambiarModo = function (modo) {
+    const esManual = modo === 'manual';
+    document.getElementById('seccionManual').classList.toggle('hidden', !esManual);
+    document.getElementById('seccionMapa').classList.toggle('hidden', esManual);
+
+    document.getElementById('btnModoManual').className =
+      'px-4 py-2 rounded font-medium ' + (esManual ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200');
+    document.getElementById('btnModoMapa').className =
+      'px-4 py-2 rounded font-medium ' + (!esManual ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200');
+
+    document.getElementById('resultArea').classList.add('hidden');
+
+    if (!esManual) refrescarMapa();
+  };
+
+  // =========================================================
+  // ===================== MODO MANUAL ========================
+  // (Lógica propia de esta página: arma la tabla de entrada y
+  //  llama a solveVogel directamente. Reutiliza mostrarResultadoMapa
+  //  de mapa.js para no repetir el HTML de la tabla de resultados.)
+  // =========================================================
+  let numO = 3, numD = 3;
+
+  window.generarTablas = function () {
+    numO = parseInt(document.getElementById('numOrigins').value);
+    numD = parseInt(document.getElementById('numDestinations').value);
+
+    let html = '<table class="border-collapse w-full text-sm">';
+    html += '<tr><th class="border p-2 bg-slate-100"></th>';
+    for (let j = 0; j < numD; j++) {
+      html += `<th class="border p-2 bg-slate-100">Destino ${j + 1}</th>`;
+    }
+    html += '<th class="border p-2 bg-amber-100">Oferta</th></tr>';
+
+    for (let i = 0; i < numO; i++) {
+      html += `<tr><td class="border p-2 bg-slate-100 font-medium">Bodega ${i + 1}</td>`;
+      for (let j = 0; j < numD; j++) {
+        html += `<td class="border p-1">
+          <input type="number" id="cost-${i}-${j}" value="0"
+            class="w-16 border rounded px-1 py-0.5 text-center">
+        </td>`;
+      }
+      html += `<td class="border p-1 bg-amber-50">
+        <input type="number" id="supply-${i}" value="0"
+          class="w-16 border rounded px-1 py-0.5 text-center">
+      </td></tr>`;
+    }
+
+    html += '<tr><td class="border p-2 bg-amber-100 font-medium">Demanda</td>';
+    for (let j = 0; j < numD; j++) {
+      html += `<td class="border p-1 bg-amber-50">
+        <input type="number" id="demand-${j}" value="0"
+          class="w-16 border rounded px-1 py-0.5 text-center">
+      </td>`;
+    }
+    html += '<td class="border p-2"></td></tr>';
+    html += '</table>';
+
+    document.getElementById('tablaContainer').innerHTML = html;
+    document.getElementById('inputArea').classList.remove('hidden');
+    document.getElementById('resultArea').classList.add('hidden');
+  };
+
+  window.resolverManual = function () {
+    const supply = [];
+    const demand = [];
+    const costs = [];
+
+    for (let i = 0; i < numO; i++) {
+      supply.push(Number(document.getElementById(`supply-${i}`).value));
+      const row = [];
+      for (let j = 0; j < numD; j++) {
+        row.push(Number(document.getElementById(`cost-${i}-${j}`).value));
+      }
+      costs.push(row);
+    }
+    for (let j = 0; j < numD; j++) {
+      demand.push(Number(document.getElementById(`demand-${j}`).value));
+    }
+
+    const nombresOrigen = Array.from({ length: numO }, (_, i) => `Bodega ${i + 1}`);
+    const nombresDestino = Array.from({ length: numD }, (_, j) => `Destino ${j + 1}`);
+
+    const resultado = solveVogel(supply, demand, costs);
+
+    // El modo manual no calcula matriz de costos (el usuario ya la escribió),
+    // así que solo limpiamos esa sección y mostramos la tabla de resultado.
+    document.getElementById('costMatrixContent').innerHTML = '';
+    mostrarResultadoMapa(resultado, nombresOrigen, nombresDestino);
+  };
+
+  // ---------- Inicialización al cargar la página ----------
+  window.generarTablas();
+  inicializarMapa();
+</script>
+
+</body>
+</html>

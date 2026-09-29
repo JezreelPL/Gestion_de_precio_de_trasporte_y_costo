@@ -1,0 +1,13 @@
+/* ============================================================
+   ESTILOS PROPIOS DE OPTIRUTA
+   (Todo lo que Tailwind no resuelve con clases utilitarias)
+   ============================================================ */
+ 
+/* Altura fija del contenedor del mapa de Leaflet.
+   Leaflet necesita que su contenedor tenga una altura explícita
+   en píxeles (no funciona bien con "auto" o porcentajes solos). */
+#map {
+  height: 420px;
+  border-radius: 0.75rem;
+}
+ 
