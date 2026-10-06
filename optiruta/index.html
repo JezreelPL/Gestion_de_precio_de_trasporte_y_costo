@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OptiRuta - Inicio</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="dot-grid-bg min-h-screen p-6 flex items-center justify-center">
+
+  <div class="max-w-3xl w-full text-center py-10">
+    <h1 class="text-5xl sm:text-6xl font-extrabold tracking-tight mb-4">
+      <span class="text-slate-900">Opti</span><span class="text-emerald-600">Ruta</span>
+    </h1>
+    <p class="text-slate-500 text-lg mb-14 max-w-xl mx-auto leading-relaxed">
+      Sistema de apoyo a la decisión para producción y distribución,
+      basado en métodos de Investigación de Operaciones.
+    </p>
+
+    <div class="grid sm:grid-cols-2 gap-6 text-left">
+
+      <!-- TARJETA: SIMPLEX -->
+      <a href="simplex.html"
+        class="group block bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow p-7 border border-slate-100">
+        <div class="w-14 h-14 rounded-xl bg-amber-50 flex items-center justify-center mb-5">
+          <svg class="w-7 h-7 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 21V8l7-4 7 4v13" />
+            <path d="M4 21h16" />
+            <path d="M9.5 21v-5h5v5" />
+            <path d="M9.5 10h1.5M13 10h1.5M9.5 13.5h1.5M13 13.5h1.5" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 mb-1">Producción</h2>
+        <p class="text-xs font-semibold tracking-wide text-emerald-600 mb-3">MÉTODO SIMPLEX</p>
+        <p class="text-sm text-slate-600 leading-relaxed">
+          ¿Cuánto debo producir de cada producto para maximizar mi ganancia,
+          dados mis recursos limitados (materia prima, horas, presupuesto)?
+        </p>
+        <span class="inline-flex items-center gap-1 mt-5 text-emerald-600 font-semibold text-sm">
+          Entrar
+          <svg class="w-4 h-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </span>
+      </a>
+
+      <!-- TARJETA: TRANSPORTE -->
+      <a href="transporte.html"
+        class="group block bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow p-7 border border-slate-100">
+        <div class="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center mb-5">
+          <svg class="w-7 h-7 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7h11v9H3z" />
+            <path d="M14 10h4l3 3v3h-7z" />
+            <circle cx="7" cy="18" r="1.8" />
+            <circle cx="17.5" cy="18" r="1.8" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 mb-1">Distribución</h2>
+        <p class="text-xs font-semibold tracking-wide text-emerald-600 mb-3">MÉTODO DE TRANSPORTE (VOGEL)</p>
+        <p class="text-sm text-slate-600 leading-relaxed">
+          ¿Cómo distribuyo mi producción entre varios destinos al menor
+          costo posible? Incluye ubicación en mapa real con cálculo
+          automático de distancias.
+        </p>
+        <span class="inline-flex items-center gap-1 mt-5 text-emerald-600 font-semibold text-sm">
+          Entrar
+          <svg class="w-4 h-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </span>
+      </a>
+
+    </div>
+
+    <p class="text-sm text-slate-500 mt-14 max-w-xl mx-auto leading-relaxed">
+      Universidad Mariano Gálvez de Guatemala 
+      <b>Por: Jezreel PL</b>
+      <br>
+      <b class="text-slate-700">cuánto producir</b> (Simplex) y después
+      <b class="text-slate-700">cómo distribuirlo</b> (Transporte).
+    </p>
+  </div>
+
+</body>
+</html>

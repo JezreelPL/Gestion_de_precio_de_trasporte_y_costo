@@ -263,6 +263,62 @@ export function mostrarResultadoMapa(resultado, nombresOrigen, nombresDestino) {
 
   html += `<p class="text-lg font-bold text-slate-800">Costo total mínimo: ${totalCost}</p>`;
 
+  // Si el usuario vino desde Simplex, cerramos la narrativa mostrando
+  // la ganancia neta (lo que se ganó al producir, menos lo que costó distribuir).
+  // Solo LEE sessionStorage; si no hay nada guardado, este bloque no hace nada.
+  const conclusionSimplex = construirConclusionSimplex(totalCost);
+  if (conclusionSimplex) html += conclusionSimplex;
+
   document.getElementById('resultContent').innerHTML = html;
   document.getElementById('resultArea').classList.remove('hidden');
+}
+
+// Copia en memoria del resumen de Simplex, para que la conclusión final
+// (al resolver) lo siga teniendo disponible aunque ya se haya borrado
+// de sessionStorage al mostrarse el banner una sola vez.
+let resumenSimplexCache = null;
+
+/**
+ * Lee el resumen de Simplex guardado en sessionStorage UNA SOLA VEZ:
+ * lo borra inmediatamente de sessionStorage (para que no reaparezca
+ * en una recarga o una visita posterior) y lo guarda en memoria
+ * (resumenSimplexCache) para que construirConclusionSimplex() lo
+ * pueda seguir usando más adelante, dentro de esta misma visita.
+ * Devuelve el objeto de datos, o null si no había nada guardado.
+ */
+export function consumirResumenSimplex() {
+  const guardado = sessionStorage.getItem('simplexResumen');
+  if (!guardado) return null;
+
+  sessionStorage.removeItem('simplexResumen'); // se borra de inmediato, se muestra solo una vez
+
+  try {
+    resumenSimplexCache = JSON.parse(guardado);
+  } catch (e) {
+    resumenSimplexCache = null;
+  }
+  return resumenSimplexCache;
+}
+
+/**
+ * Si hay un resumen de Simplex en memoria (cargado antes por
+ * consumirResumenSimplex), arma un párrafo de conclusión conectando
+ * producción + transporte. Devuelve null si no hay nada (comportamiento normal).
+ */
+function construirConclusionSimplex(costoTransporte) {
+  if (!resumenSimplexCache) return null;
+  const datos = resumenSimplexCache;
+
+  const gananciaNeta = Math.round((datos.ganancia - costoTransporte) * 100) / 100;
+
+  return `
+    <div class="mt-4 pt-4 border-t border-slate-200">
+      <p class="text-sm font-semibold text-slate-700 mb-1">🧩 Conclusión del proceso completo</p>
+      <p class="text-sm text-slate-600">
+        Produjiste ${datos.textoProduccion}, generando una ganancia de ${datos.ganancia}.
+        Distribuirlo entre tus destinos costó ${costoTransporte}.
+        <b>Ganancia neta estimada: ${gananciaNeta}.</b>
+      </p>
+    </div>
+  `;
 }

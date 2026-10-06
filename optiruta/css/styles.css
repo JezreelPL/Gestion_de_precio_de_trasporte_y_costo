@@ -2,7 +2,7 @@
    ESTILOS PROPIOS DE OPTIRUTA
    (Todo lo que Tailwind no resuelve con clases utilitarias)
    ============================================================ */
- 
+
 /* Altura fija del contenedor del mapa de Leaflet.
    Leaflet necesita que su contenedor tenga una altura explícita
    en píxeles (no funciona bien con "auto" o porcentajes solos). */
@@ -10,4 +10,11 @@
   height: 420px;
   border-radius: 0.75rem;
 }
- 
+
+/* Fondo de puntos para la pantalla de inicio (index.html).
+   Un patrón de puntos pequeños y sutiles, repetido con CSS puro. */
+.dot-grid-bg {
+  background-color: #F8FAFC;
+  background-image: radial-gradient(circle, #CBD5E1 1px, transparent 1px);
+  background-size: 24px 24px;
+}

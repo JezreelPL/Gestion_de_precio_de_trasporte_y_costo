@@ -14,8 +14,17 @@
 <body class="bg-slate-50 min-h-screen p-6">
 
   <div class="max-w-5xl mx-auto">
-    <h1 class="text-3xl font-bold text-slate-800 mb-1">OptiRuta</h1>
+    <div class="flex items-center justify-between mb-1">
+      <h1 class="text-3xl font-bold text-slate-800">OptiRuta</h1>
+      <a href="index.html" class="text-sm text-slate-500 hover:underline">← Volver al inicio</a>
+    </div>
     <p class="text-slate-500 mb-6">Distribución óptima con el Método de Vogel</p>
+
+    <!-- RECORDATORIO DE SIMPLEX (solo aparece si el usuario viene de ese módulo).
+         Colocado fuera de #seccionManual y #seccionMapa a propósito, para que
+         NO se oculte al cambiar de modo con cambiarModo(). Es solo informativo,
+         no carga ningún dato en los campos de abajo. -->
+    <div id="bannerSimplex" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-900"></div>
 
     <!-- SELECTOR DE MODO -->
     <div class="bg-white rounded-xl shadow p-5 mb-6">
@@ -152,6 +161,7 @@
     cancelarModal,
     confirmarModal,
     mostrarResultadoMapa,
+    consumirResumenSimplex,
   } from './js/mapa.js';
 
   // Exponemos a "window" solo lo que el HTML llama por onclick="..."
@@ -252,9 +262,28 @@
     mostrarResultadoMapa(resultado, nombresOrigen, nombresDestino);
   };
 
+  // ---------- Recordatorio de Simplex (si el usuario viene de ese módulo) ----------
+  // consumirResumenSimplex() lee el dato UNA SOLA VEZ y lo borra de sessionStorage
+  // (pero lo guarda en memoria dentro de mapa.js para que la "Conclusión del
+  // proceso completo" lo siga usando después de resolver). Así, si recargas
+  // la página o vuelves a entrar sin pasar de nuevo por el botón de Simplex,
+  // el banner ya no reaparece — solo se muestra justo esa primera vez.
+  function mostrarBannerSimplex() {
+    const datos = consumirResumenSimplex();
+    if (!datos) return; // no viene de Simplex (o ya se mostró antes): no se muestra nada
+
+    const banner = document.getElementById('bannerSimplex');
+    banner.innerHTML = `
+      📋 <b>Recordatorio de tu cálculo en Simplex:</b> necesitas producir ${datos.textoProduccion}
+      (ganancia máxima: ${datos.ganancia}). Usa estos números como guía para la oferta de tus bodegas aquí abajo.
+    `;
+    banner.classList.remove('hidden');
+  }
+
   // ---------- Inicialización al cargar la página ----------
   window.generarTablas();
   inicializarMapa();
+  mostrarBannerSimplex();
 </script>
 
 </body>

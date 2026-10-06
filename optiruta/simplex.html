@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OptiRuta - Producción (Método Simplex)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-slate-50 min-h-screen p-6">
+
+  <div class="max-w-5xl mx-auto">
+    <div class="flex items-center justify-between mb-1">
+      <h1 class="text-3xl font-bold text-slate-800">OptiRuta</h1>
+      <a href="index.html" class="text-sm text-slate-500 hover:underline">← Volver al inicio</a>
+    </div>
+    <p class="text-slate-500 mb-6">Producción óptima con el Método Simplex</p>
+
+    <!-- CONFIGURACIÓN DEL PROBLEMA -->
+    <div class="bg-white rounded-xl shadow p-5 mb-6">
+      <h2 class="font-semibold text-slate-700 mb-3">1. Configura tu problema</h2>
+      <p class="text-sm text-slate-500 mb-3">
+        Este módulo resuelve problemas de <b>maximización</b> con restricciones de tipo
+        <b>≤</b> (menor o igual), usando variables de holgura — el método clásico de tablas.
+      </p>
+      <div class="flex gap-4 mb-4 flex-wrap">
+        <label class="text-sm text-slate-600">
+          Variables de decisión (productos):
+          <input id="numVars" type="number" min="1" max="6" value="2"
+            class="border rounded px-2 py-1 w-16 ml-2">
+        </label>
+        <label class="text-sm text-slate-600">
+          Restricciones (recursos):
+          <input id="numConstraints" type="number" min="1" max="6" value="2"
+            class="border rounded px-2 py-1 w-16 ml-2">
+        </label>
+        <button onclick="generarFormulario()"
+          class="bg-slate-700 text-white px-4 py-1 rounded hover:bg-slate-800">
+          Generar formulario
+        </button>
+      </div>
+    </div>
+
+    <!-- FORMULARIO DE ENTRADA -->
+    <div id="inputArea" class="bg-white rounded-xl shadow p-5 mb-6 hidden">
+      <h2 class="font-semibold text-slate-700 mb-3">2. Ingresa la función objetivo y las restricciones</h2>
+      <div id="formContainer" class="overflow-x-auto"></div>
+      <button onclick="resolver()"
+        class="mt-4 bg-emerald-600 text-white px-5 py-2 rounded hover:bg-emerald-700 font-semibold">
+        Resolver
+      </button>
+    </div>
+
+    <!-- RESULTADO -->
+    <div id="resultArea" class="bg-white rounded-xl shadow p-5 mb-6 hidden">
+      <h2 class="font-semibold text-slate-700 mb-3">3. Resultado</h2>
+      <div id="resultSummary" class="mb-4"></div>
+
+      <button onclick="toggleTablas()" class="text-sm text-emerald-700 hover:underline mb-3">
+        <span id="toggleTablasTexto">Ver tablas de cada iteración ▼</span>
+      </button>
+      <div id="tablasContainer" class="hidden space-y-6"></div>
+    </div>
+
+    <!-- CONEXIÓN CONCEPTUAL CON TRANSPORTE (Opción B: narrativa, sin pasar datos automáticamente).
+         Su contenido se genera dinámicamente en mostrarCartelito(), con los nombres
+         y cantidades reales que ingresó el usuario. -->
+    <div id="conexionArea" class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 hidden"></div>
+  </div>
+
+<script type="module">
+  import { solveSimplex } from './js/simplex.js';
+
+  let numVars = 2, numConstraints = 2;
+
+  window.generarFormulario = function () {
+    numVars = parseInt(document.getElementById('numVars').value);
+    numConstraints = parseInt(document.getElementById('numConstraints').value);
+
+    let html = '';
+
+    // ---- Nombres de los productos (solo para mostrar mensajes claros al final) ----
+    html += '<p class="font-medium text-slate-700 mb-2">¿Qué productos vas a fabricar?</p>';
+    html += '<div class="flex flex-wrap gap-3 mb-5">';
+    for (let j = 0; j < numVars; j++) {
+      html += `
+        <label class="text-sm text-slate-600">
+          x${j + 1} =
+          <input type="text" id="name-${j}" value="Producto ${j + 1}"
+            class="border rounded px-2 py-1 ml-1 w-36">
+        </label>
+      `;
+    }
+    html += '</div>';
+
+    // ---- Función objetivo ----
+    html += '<p class="font-medium text-slate-700 mb-2">Maximizar Z =</p>';
+    html += '<div class="flex flex-wrap items-center gap-2 mb-5">';
+    for (let j = 0; j < numVars; j++) {
+      html += `
+        <input type="number" id="obj-${j}" value="0"
+          class="w-16 border rounded px-1 py-1 text-center">
+        <span class="text-slate-600">x${j + 1}</span>
+        ${j < numVars - 1 ? '<span class="text-slate-400">+</span>' : ''}
+      `;
+    }
+    html += '</div>';
+
+    // ---- Restricciones ----
+    html += '<p class="font-medium text-slate-700 mb-2">Sujeto a (tus recursos limitados):</p>';
+    for (let i = 0; i < numConstraints; i++) {
+      html += `
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-xs text-slate-500">Recurso:</span>
+          <input type="text" id="resname-${i}" value="Recurso ${i + 1}"
+            class="border rounded px-2 py-1 text-sm w-40">
+        </div>
+      `;
+      html += '<div class="flex flex-wrap items-center gap-2 mb-3">';
+      for (let j = 0; j < numVars; j++) {
+        html += `
+          <input type="number" id="c-${i}-${j}" value="0"
+            class="w-16 border rounded px-1 py-1 text-center">
+          <span class="text-slate-600">x${j + 1}</span>
+          ${j < numVars - 1 ? '<span class="text-slate-400">+</span>' : ''}
+        `;
+      }
+      html += `
+        <span class="text-slate-500 mx-1">≤</span>
+        <input type="number" id="rhs-${i}" value="0"
+          class="w-20 border rounded px-1 py-1 text-center bg-amber-50">
+      `;
+      html += '</div>';
+    }
+    html += '<p class="text-xs text-slate-400 mt-2">Todas las variables son ≥ 0.</p>';
+
+    document.getElementById('formContainer').innerHTML = html;
+    document.getElementById('inputArea').classList.remove('hidden');
+    document.getElementById('resultArea').classList.add('hidden');
+    document.getElementById('conexionArea').classList.add('hidden');
+  };
+
+  window.resolver = function () {
+    const nombresProductos = [];
+    const objective = [];
+    for (let j = 0; j < numVars; j++) {
+      const nombre = document.getElementById(`name-${j}`).value.trim();
+      nombresProductos.push(nombre || `Producto ${j + 1}`);
+      objective.push(Number(document.getElementById(`obj-${j}`).value));
+    }
+
+    const nombresRecursos = [];
+    const constraints = [];
+    for (let i = 0; i < numConstraints; i++) {
+      nombresRecursos.push(document.getElementById(`resname-${i}`).value.trim() || `Recurso ${i + 1}`);
+      const coeffs = [];
+      for (let j = 0; j < numVars; j++) {
+        coeffs.push(Number(document.getElementById(`c-${i}-${j}`).value));
+      }
+      const rhs = Number(document.getElementById(`rhs-${i}`).value);
+      if (rhs < 0) {
+        alert(`La restricción ${i + 1} tiene lado derecho negativo. Este módulo solo admite restricciones con lado derecho ≥ 0 (multiplica esa restricción por -1 antes de ingresarla, si corresponde).`);
+        return;
+      }
+      constraints.push({ coeffs, rhs });
+    }
+
+    const resultado = solveSimplex(objective, constraints);
+    mostrarResultado(resultado, nombresProductos, constraints, nombresRecursos);
+  };
+
+  function mostrarResultado(resultado, nombresProductos, constraints, nombresRecursos) {
+    const { xValues, slackValues, Z, unbounded, steps } = resultado;
+
+    if (unbounded) {
+      document.getElementById('resultSummary').innerHTML = `
+        <p class="text-red-600 font-semibold">
+          ⚠ El problema no tiene solución acotada (Z puede crecer indefinidamente).
+          Revisa que tus restricciones limiten correctamente todas las variables.
+        </p>`;
+      document.getElementById('resultArea').classList.remove('hidden');
+      document.getElementById('conexionArea').classList.add('hidden');
+      document.getElementById('tablasContainer').innerHTML = '';
+      return;
+    }
+
+    // ---- Tarjetas con la cantidad óptima de cada producto (con su nombre real) ----
+    let html = '<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">';
+    xValues.forEach((val, i) => {
+      html += `
+        <div class="bg-emerald-50 rounded-lg p-3 text-center">
+          <p class="text-xs text-emerald-700">${nombresProductos[i]}</p>
+          <p class="text-lg font-bold text-emerald-900">${val}</p>
+        </div>`;
+    });
+    html += '</div>';
+    html += `<p class="text-lg font-bold text-slate-800">Ganancia máxima (Z): ${Z}</p>`;
+
+    const holgurasSobrantes = slackValues
+      .map((s, i) => (s > 0 ? `${nombresRecursos[i]}: sobran ${s} unidades sin usar` : null))
+      .filter(Boolean);
+    if (holgurasSobrantes.length > 0) {
+      html += `<p class="text-sm text-slate-500 mt-2">${holgurasSobrantes.join(' · ')}</p>`;
+    } else {
+      html += `<p class="text-sm text-slate-500 mt-2">Todos los recursos se utilizan al 100% (ninguna holgura sobrante).</p>`;
+    }
+
+    document.getElementById('resultSummary').innerHTML = html;
+    document.getElementById('resultArea').classList.remove('hidden');
+
+    mostrarTablas(steps, resultado.colNames);
+    mostrarCartelito(xValues, nombresProductos, constraints, nombresRecursos, Z);
+  }
+
+  /**
+   * Arma el mensaje explicativo genérico: cuánto producir de cada producto
+   * (con sus nombres reales) y cuánto material consume eso, usando los
+   * coeficientes que el propio usuario ingresó en cada restricción.
+   * Aplica igual para juguetes, café, videojuegos, o cualquier producto.
+   */
+  function mostrarCartelito(xValues, nombresProductos, constraints, nombresRecursos, Z) {
+    const partesProduccion = xValues.map((val, i) => `${val} ${nombresProductos[i]}`);
+    const textoProduccion = partesProduccion.length > 1
+      ? partesProduccion.slice(0, -1).join(', ') + ' y ' + partesProduccion.slice(-1)
+      : partesProduccion[0];
+
+    const consumos = constraints.map((c, i) => {
+      const total = c.coeffs.reduce((sum, coef, j) => sum + coef * xValues[j], 0);
+      return `${nombresRecursos[i]}: ${round2(total)} unidades consumidas de ${c.rhs} disponibles`;
+    });
+
+    const totalUnidades = round2(xValues.reduce((a, b) => a + b, 0));
+
+    const html = `
+      <h3 class="font-semibold text-emerald-800 mb-2">💡 Siguiente paso sugerido</h3>
+      <p class="text-sm text-emerald-900 mb-2">
+        Para maximizar tu ganancia, necesitas producir <b>${textoProduccion}</b>.
+      </p>
+      <p class="text-sm text-emerald-900 mb-3">${consumos.join(' · ')}</p>
+
+      <p class="text-sm text-emerald-900 mb-2">
+        Ahora que sabes cuánto producir, el siguiente paso en una empresa real es decidir
+        <b>cómo distribuirlo</b> entre tus clientes o tiendas al menor costo. Tienes dos formas
+        de hacerlo en el módulo de Transporte (funciona igual en modo manual o con el mapa):
+      </p>
+      <ul class="text-sm text-emerald-900 list-disc pl-5 mb-3 space-y-1">
+        <li>
+          <b>Por producto:</b> resuelve Transporte una vez para cada producto por separado
+          (por ejemplo, una corrida con ${xValues[0]} ${nombresProductos[0]}${xValues.length > 1 ? `, otra con ${nombresProductos[1]}...` : ''}),
+          si necesitas distribuir cada uno de forma distinta.
+        </li>
+        <li>
+          <b>Total combinado:</b> si no te importa distinguir cuál producto es cuál, usa
+          <b>${totalUnidades} unidades</b> (la suma de todo) como una sola oferta genérica a transportar.
+        </li>
+      </ul>
+
+      <button onclick="irATransporte()"
+        class="inline-block bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 text-sm font-semibold">
+        Ir al módulo de Transporte →
+      </button>
+    `;
+
+    document.getElementById('conexionArea').innerHTML = html;
+    document.getElementById('conexionArea').classList.remove('hidden');
+
+    // Guardamos los datos de este resultado para que Transporte los pueda
+    // mostrar como recordatorio. No se cargan automáticamente en ningún
+    // campo — solo quedan disponibles para mostrarse como texto informativo.
+    ultimoResumenSimplex = {
+      productos: nombresProductos.map((nombre, i) => ({ nombre, cantidad: xValues[i] })),
+      ganancia: Z,
+      totalUnidades,
+      textoProduccion,
+    };
+  }
+
+  // Guarda temporalmente los datos del último resultado, mientras el usuario
+  // decide si hace clic en "Ir a calcular transporte" o no.
+  let ultimoResumenSimplex = null;
+
+  window.irATransporte = function () {
+    if (ultimoResumenSimplex) {
+      sessionStorage.setItem('simplexResumen', JSON.stringify(ultimoResumenSimplex));
+    }
+    window.location.href = 'transporte.html';
+  };
+
+  function round2(num) {
+    return Math.round(num * 100) / 100;
+  }
+
+  function mostrarTablas(steps, colNames) {
+    let html = '';
+    steps.forEach((paso, idx) => {
+      html += `<div>
+        <p class="font-medium text-slate-700 mb-2">
+          ${idx === 0 ? 'Tabla inicial' : `Iteración ${idx}`}
+        </p>
+        <table class="border-collapse w-full text-sm">`;
+
+      // Encabezado con nombres de columnas (las de decisión/holgura + la columna R)
+      html += '<tr><th class="border p-2 bg-slate-100">Base</th>';
+      colNames.forEach(nombre => html += `<th class="border p-2 bg-slate-100">${nombre}</th>`);
+      html += '<th class="border p-2 bg-slate-100">R</th></tr>';
+
+      // Filas de restricciones
+      paso.filas.forEach((fila, filaIdx) => {
+        html += `<tr><td class="border p-2 bg-slate-100 font-medium">${fila.base}</td>`;
+        fila.valores.forEach((val, colIdx) => {
+          const esPivote = paso.pivotRow === filaIdx && paso.pivotCol === colIdx;
+          html += `<td class="border p-2 text-center ${esPivote ? 'bg-amber-200 font-bold' : ''}">${val}</td>`;
+        });
+        html += '</tr>';
+      });
+
+      // Fila Z
+      html += '<tr><td class="border p-2 bg-slate-200 font-medium">Z</td>';
+      paso.zRow.forEach(val => {
+        html += `<td class="border p-2 text-center bg-slate-50">${val}</td>`;
+      });
+      html += '</tr></table></div>';
+    });
+
+    document.getElementById('tablasContainer').innerHTML = html;
+  }
+
+  window.toggleTablas = function () {
+    const cont = document.getElementById('tablasContainer');
+    const texto = document.getElementById('toggleTablasTexto');
+    cont.classList.toggle('hidden');
+    texto.textContent = cont.classList.contains('hidden')
+      ? 'Ver tablas de cada iteración ▼'
+      : 'Ocultar tablas ▲';
+  };
+
+  // Generar el formulario inicial al cargar la página
+  window.generarFormulario();
+</script>
+
+</body>
+</html>
